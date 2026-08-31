@@ -1,7 +1,19 @@
 // Client half of the loop: hold the camera, talk to the lobby socket, rebuild
 // one RTCPeerConnection per stranger, and mirror the server's call clock.
 
-const ICE = [{ urls: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"] }];
+const FALLBACK_ICE = [{ urls: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"] }];
+
+// The server mints short-lived TURN credentials per visit. Fetched once when the
+// camera starts, not per stranger, and a failure just means STUN-only.
+async function iceServers() {
+  try {
+    const res = await fetch("/ice");
+    const data = await res.json();
+    return data.iceServers?.length ? data.iceServers : FALLBACK_ICE;
+  } catch {
+    return FALLBACK_ICE;
+  }
+}
 
 export class Chat {
   constructor({ local, remote, onState, onClock, onAsked, onKept }) {
@@ -27,6 +39,7 @@ export class Chat {
   async start(handle) {
     if (this.state !== "idle") return;
     this.handle = handle || "";
+    this.ice = FALLBACK_ICE;
     this.set("idle", "Requesting camera...");
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -35,6 +48,7 @@ export class Chat {
       return;
     }
     this.localEl.srcObject = this.stream;
+    this.ice = await iceServers();
     this.connect();
   }
 
@@ -105,7 +119,7 @@ export class Chat {
 
   async openPeer(initiator) {
     this.closePeer();
-    const pc = new RTCPeerConnection({ iceServers: ICE });
+    const pc = new RTCPeerConnection({ iceServers: this.ice });
     this.pc = pc;
     for (const track of this.stream.getTracks()) pc.addTrack(track, this.stream);
     pc.ontrack = (e) => {

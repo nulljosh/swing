@@ -19,9 +19,22 @@ Video and audio are peer-to-peer. Nothing is recorded and nothing is stored.
     node test.mjs         # pairing logic
     npx wrangler deploy
 
+## TURN
+
+`/ice` hands the browser its ICE servers. With no TURN key configured it returns
+STUN only, which is enough for most pairs but leaves symmetric NATs unable to
+connect. To turn the relay on, create a TURN key in the Cloudflare dashboard
+(Realtime > TURN) and give the Worker its two values:
+
+    npx wrangler secret put TURN_KEY_ID
+    npx wrangler secret put TURN_KEY_API_TOKEN
+
+The Worker then mints a credential per visit with a one hour TTL; nothing
+long-lived is ever sent to the page. If minting fails the call still runs on
+STUN rather than erroring.
+
 ## Known limits
 
 Reports are logged to the Worker console and cut the call; there is no abuse
 queue, no ban list, and no moderation of any kind. Everyone shares one lobby,
-so there are no interest tags or region matching. Peers behind strict NATs will
-fail to connect because there is no TURN server, only STUN.
+so there are no interest tags or region matching.

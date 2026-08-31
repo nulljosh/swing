@@ -10,9 +10,45 @@ export default {
     if (url.pathname === "/ws") {
       return env.LOBBY.get(env.LOBBY.idFromName("global")).fetch(request);
     }
+    if (url.pathname === "/ice") return ice(env);
     return env.ASSETS.fetch(request);
   },
 };
+
+// STUN tells a browser its public address, which is enough for most pairs. The
+// rest — symmetric NATs, restrictive corporate networks — need TURN to relay the
+// media. Credentials are minted per client and expire, so nothing long-lived
+// ever reaches the page.
+const STUN = { urls: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"] };
+
+async function ice(env) {
+  const body = (servers) =>
+    Response.json({ iceServers: servers }, { headers: { "cache-control": "no-store" } });
+
+  if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) return body([STUN]);
+  try {
+    const res = await fetch(
+      `https://rtc.live.cloudflare.com/v1/turn/keys/${env.TURN_KEY_ID}/credentials/generate-ice-servers`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.TURN_KEY_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ttl: 3600 }),
+      },
+    );
+    if (!res.ok) throw new Error(`turn ${res.status}`);
+    const data = await res.json();
+    const servers = data.iceServers ? [].concat(data.iceServers) : [];
+    return body([STUN, ...servers]);
+  } catch (err) {
+    // A relay we could not mint is not worth failing the call over; the pairs
+    // that STUN can serve still connect.
+    console.log("turn", String(err));
+    return body([STUN]);
+  }
+}
 
 export class Lobby {
   constructor(state) {
