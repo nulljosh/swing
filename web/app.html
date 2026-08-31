@@ -5,7 +5,8 @@
 <link rel="icon" href="icon.svg">
 <style>
   :root {
-    --bg: #0d0d0f; --panel: #17171b; --line: #2a2a31;
+    --bg: #0d0d0f;
+    --link: #f0b429; --panel: #17171b; --line: #2a2a31;
     --fg: #f2f2f4; --dim: #9a9aa4; --accent: #f0b429; --danger: #e2564a;
     --font-body: -apple-system, system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
@@ -23,7 +24,7 @@
   #status { color: var(--dim); font-size: 13px; }
   #clock {
     margin-left: auto; font-size: 22px; font-variant-numeric: tabular-nums;
-    font-weight: 600; color: var(--accent);
+    font-weight: 600; color: var(--link, var(--accent));
   }
   #clock[hidden] { display: none; }
   #clock.low { color: var(--danger); }
@@ -46,7 +47,7 @@
     background: var(--panel); border: 1px solid var(--accent); font-size: 15px;
   }
   #banner[hidden] { display: none; }
-  #banner b { color: var(--accent); }
+  #banner b { color: var(--link, var(--accent)); }
   footer {
     display: flex; flex-wrap: wrap; gap: 10px;
     padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
@@ -59,7 +60,7 @@
   button { cursor: pointer; }
   button:disabled { opacity: .4; cursor: default; }
   input { min-width: 0; flex: 1 1 160px; }
-  #start, #more { background: var(--accent); border-color: var(--accent); color: #1a1200; font-weight: 600; }
+  #start, #more { background: var(--accent); border-color: var(--link, var(--accent)); color: #1a1200; font-weight: 600; }
   #more.asked { animation: nudge .9s ease-in-out infinite; }
   @keyframes nudge { 50% { transform: translateY(-2px); } }
   @media (prefers-reduced-motion: reduce) { #more.asked { animation: none; } }
@@ -68,7 +69,7 @@
   #gate div { max-width: 400px; }
   #gate h1 { font-size: 24px; letter-spacing: -0.02em; }
   #gate p { color: var(--dim); font-size: 14px; line-height: 1.55; }
-  #agree { background: var(--accent); border-color: var(--accent); color: #1a1200; font-weight: 600; }
+  #agree { background: var(--accent); border-color: var(--link, var(--accent)); color: #1a1200; font-weight: 600; }
 </style>
 
 <header>
