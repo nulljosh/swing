@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Swing — fifteen seconds with a stranger</title>
 <meta name="description" content="Random one-to-one video chat. You get fifteen seconds with a stranger. Both of you tap for more, or you swing to the next one.">
-<meta name="theme-color" content="#f0b429">
+<meta name="theme-color" content="#ff851b">
 <meta property="og:title" content="Swing — fifteen seconds with a stranger">
 <meta property="og:description" content="Random one-to-one video chat. Fifteen seconds, then both of you decide.">
 <meta property="og:type" content="website">
@@ -14,9 +14,9 @@
 @import url("https://heyitsmejosh.com/tokens.css");
 
 :root {
-  --accent: #f0b429;
-  --accent-soft: #fdf4e0;
-  --on-accent: #1a1200;
+  --accent: #ff851b;
+  --accent-soft: #fff2e6;
+  --on-accent: #ffffff;
   --bg: #ffffff;
   --bg2: #f7f7f8;
   --text: #1c1d22;
@@ -29,13 +29,13 @@
   :root:not([data-theme="light"]) {
     --bg: #121316; --bg2: #1a1b1f; --text: #ececf0;
     --text2: rgba(236,236,240,0.62); --border: rgba(236,236,240,0.12);
-    --accent-soft: #241d0e;
+    --accent-soft: #2a1a0d;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121316; --bg2: #1a1b1f; --text: #ececf0;
   --text2: rgba(236,236,240,0.62); --border: rgba(236,236,240,0.12);
-  --accent-soft: #241d0e;
+  --accent-soft: #2a1a0d;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -65,16 +65,17 @@ img { max-width: 100%; }
 }
 .wall i {
   display: block; aspect-ratio: 4 / 3; border-radius: 8px;
-  background: var(--accent); opacity: .18;
-  animation: cut 6s steps(1, end) infinite;
+  background: var(--c); opacity: .18;
+  /* 15s: one loop is one call, so the wall keeps the app's own clock */
+  animation: cut 15s ease-in-out infinite;
   animation-delay: var(--d);
 }
 @keyframes cut {
-  0%   { opacity: .10; transform: scale(.97); }
-  25%  { opacity: .34; transform: scale(1); }
-  50%  { opacity: .14; transform: scale(.98); }
-  75%  { opacity: .44; transform: scale(1); }
-  100% { opacity: .10; transform: scale(.97); }
+  0%   { opacity: .06; transform: scale(.96); }
+  8%   { opacity: .40; transform: scale(1); }   /* connected */
+  85%  { opacity: .40; transform: scale(1); }   /* fifteen seconds together */
+  93%  { opacity: .06; transform: scale(.96); } /* swing */
+  100% { opacity: .06; transform: scale(.96); }
 }
 @media (prefers-reduced-motion: reduce) { .wall i { animation: none; } }
 
@@ -190,13 +191,21 @@ footer a { text-decoration: underline; }
 </footer>
 
 <script>
-// Fill the hero with tiles, each on its own offset beat. Count is by viewport
-// so a phone paints a dozen instead of ninety.
+// Tiles come in pairs: two next to each other share a colour and a beat, so
+// the wall reads as a room of calls connecting and swinging, not a blinking
+// grid. Count is by viewport so a phone paints a dozen instead of ninety.
 (function () {
   var wall = document.getElementById('wall');
+  var colors = ['#ff851b', '#ffdc00', '#7fdbff', '#2ecc40', '#0074d9', '#ff4136'];
   var n = Math.min(90, Math.ceil((innerWidth * innerHeight) / 14000));
-  var html = '';
-  for (var i = 0; i < n; i++) html += '<i style="--d:' + (-Math.random() * 6).toFixed(2) + 's"></i>';
+  var html = '', d = 0, c = '';
+  for (var i = 0; i < n; i++) {
+    if (i % 2 === 0) {
+      d = -(Math.random() * 15).toFixed(2);
+      c = colors[(Math.random() * colors.length) | 0];
+    }
+    html += '<i style="--d:' + d + 's;--c:' + c + '"></i>';
+  }
   wall.innerHTML = html;
 })();
 </script>
