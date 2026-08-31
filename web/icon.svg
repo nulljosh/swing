@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Swing">
+  <rect width="64" height="64" rx="14" fill="#f0b429"/>
+  <!-- a rope and the seat of a swing, mid-arc -->
+  <path d="M14 16 C 14 34, 50 34, 50 16" fill="none" stroke="#1a1200" stroke-width="4" stroke-linecap="round"/>
+  <path d="M22 20 L27 42 M42 20 L37 42" fill="none" stroke="#1a1200" stroke-width="4" stroke-linecap="round"/>
+  <rect x="21" y="42" width="22" height="6" rx="3" fill="#1a1200"/>
+</svg>

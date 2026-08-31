@@ -1,0 +1,164 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swing</title>
+<link rel="icon" href="icon.svg">
+<style>
+  :root {
+    --bg: #0d0d0f; --panel: #17171b; --line: #2a2a31;
+    --fg: #f2f2f4; --dim: #9a9aa4; --accent: #f0b429; --danger: #e2564a;
+    --font-body: -apple-system, system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); min-height: 100dvh;
+    display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 12px;
+    padding: 14px 18px; border-bottom: 1px solid var(--line);
+  }
+  header a { color: var(--fg); text-decoration: none; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  #status { color: var(--dim); font-size: 13px; }
+  #clock {
+    margin-left: auto; font-size: 22px; font-variant-numeric: tabular-nums;
+    font-weight: 600; color: var(--accent);
+  }
+  #clock[hidden] { display: none; }
+  #clock.low { color: var(--danger); }
+  main {
+    flex: 1; display: grid; gap: 10px; padding: 10px;
+    grid-template-columns: 1fr; align-content: start;
+  }
+  @media (min-width: 720px) { main { grid-template-columns: 1fr 1fr; } }
+  .tile {
+    position: relative; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; overflow: hidden; aspect-ratio: 4 / 3;
+  }
+  video { width: 100%; height: 100%; object-fit: cover; background: #000; }
+  .tile span {
+    position: absolute; left: 8px; bottom: 8px; font-size: 12px;
+    background: rgba(0,0,0,.55); padding: 2px 7px; border-radius: 5px;
+  }
+  #banner {
+    grid-column: 1 / -1; padding: 12px 14px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--accent); font-size: 15px;
+  }
+  #banner[hidden] { display: none; }
+  #banner b { color: var(--accent); }
+  footer {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+  }
+  button, input {
+    font: inherit; font-size: 15px; padding: 11px 18px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--fg);
+  }
+  button { cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+  input { min-width: 0; flex: 1 1 160px; }
+  #start, #more { background: var(--accent); border-color: var(--accent); color: #1a1200; font-weight: 600; }
+  #more.asked { animation: nudge .9s ease-in-out infinite; }
+  @keyframes nudge { 50% { transform: translateY(-2px); } }
+  @media (prefers-reduced-motion: reduce) { #more.asked { animation: none; } }
+  #report { margin-left: auto; border-color: var(--danger); color: var(--danger); }
+  #gate { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; padding: 24px; }
+  #gate div { max-width: 400px; }
+  #gate h1 { font-size: 24px; letter-spacing: -0.02em; }
+  #gate p { color: var(--dim); font-size: 14px; line-height: 1.55; }
+  #agree { background: var(--accent); border-color: var(--accent); color: #1a1200; font-weight: 600; }
+</style>
+
+<header>
+  <a href="/">Swing</a>
+  <span id="status">Idle</span>
+  <span id="clock" hidden>15</span>
+</header>
+
+<main>
+  <div class="tile"><video id="remote" autoplay playsinline></video><span>Stranger</span></div>
+  <div class="tile"><video id="local" autoplay playsinline muted></video><span>You</span></div>
+  <p id="banner" hidden></p>
+</main>
+
+<footer>
+  <input id="handle" placeholder="Your @ (shared only if you both keep)" maxlength="32" autocomplete="off">
+  <button id="start">Start</button>
+  <button id="more" disabled>More time</button>
+  <button id="keep" disabled>Keep</button>
+  <button id="next" disabled>Next</button>
+  <button id="stop" disabled>Stop</button>
+  <button id="report" disabled>Report</button>
+</footer>
+
+<div id="gate" hidden>
+  <div>
+    <h1>Swing puts you on camera with a stranger.</h1>
+    <p>You must be 18 or older. Whatever you show is seen live by another person.
+       Nudity, harassment, and minors are not allowed. Use Report to cut a call.</p>
+    <button id="agree">I am 18 or older</button>
+  </div>
+</div>
+
+<script type="module">
+import { Chat } from "./chat.js";
+
+const $ = (id) => document.getElementById(id);
+const banner = (html) => { $("banner").innerHTML = html; $("banner").hidden = !html; };
+
+const chat = new Chat({
+  local: $("local"),
+  remote: $("remote"),
+  onState(state, note) {
+    $("status").textContent = note || state;
+    const live = state === "connected";
+    $("start").disabled = state !== "idle";
+    $("handle").disabled = state !== "idle";
+    for (const id of ["next", "stop"]) $(id).disabled = state === "idle";
+    for (const id of ["more", "keep", "report"]) $(id).disabled = !live;
+    if (state !== "connected") banner("");
+  },
+  onClock(left) {
+    $("clock").hidden = left === null;
+    if (left === null) return;
+    $("clock").textContent = left;
+    $("clock").classList.toggle("low", left <= 5);
+  },
+  onAsked(what) {
+    $("more").classList.toggle("asked", what === "extend");
+    if (what === "extend") banner("They want more time. Tap <b>More time</b> to keep going.");
+    if (what === "keep") banner("They want to keep you. Tap <b>Keep</b> to swap handles.");
+    if (!what) banner("");
+  },
+  onKept(handle) {
+    banner(handle ? `You both kept each other. They are <b>${escapeHtml(handle)}</b>.`
+                  : "You both kept each other, but they left no handle.");
+  },
+});
+
+const escapeHtml = (s) => s.replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+
+$("handle").value = localStorage.getItem("swing.handle") || "";
+$("start").onclick = () => {
+  const h = $("handle").value.trim();
+  try { localStorage.setItem("swing.handle", h); } catch {}
+  chat.start(h);
+};
+$("more").onclick = () => chat.extend();
+$("keep").onclick = () => chat.keep();
+$("next").onclick = () => chat.next();
+$("stop").onclick = () => chat.stop();
+$("report").onclick = () => chat.report(prompt("What happened?") || "unspecified");
+
+// 18+ gate. Self-attested and remembered locally — the same thing every
+// camera-roulette site does, and worth the same: a clear rule, not proof.
+if (localStorage.getItem("swing.adult") !== "yes") {
+  $("gate").hidden = false;
+  $("agree").onclick = () => {
+    try { localStorage.setItem("swing.adult", "yes"); } catch {}
+    $("gate").hidden = true;
+  };
+}
+</script>

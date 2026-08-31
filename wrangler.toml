@@ -1,0 +1,19 @@
+name = "swing"
+main = "worker.js"
+compatibility_date = "2025-07-01"
+workers_dev = false
+routes = [{ pattern = "swing.heyitsmejosh.com", custom_domain = true }]
+
+[assets]
+directory = "web"
+binding = "ASSETS"
+
+# One global lobby object. ponytail: single DO = single matchmaking queue;
+# shard by region/interest key if one object ever saturates.
+[[durable_objects.bindings]]
+name = "LOBBY"
+class_name = "Lobby"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Lobby"]
