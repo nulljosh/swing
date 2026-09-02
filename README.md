@@ -2,18 +2,19 @@
 
 **Live:** https://swing.heyitsmejosh.com
 
-Fifteen seconds of video with a stranger. Both of you tap for more time or the
-call ends itself, and if you both tap Keep you swap handles. Same idea as
-Monkey and Omegle, written from scratch.
+Fifteen seconds of video with a stranger.
 
-- `worker.js` — Cloudflare Worker. Serves `web/`, and hands `/ws` to a single
-  Durable Object that keeps a waiting queue, pairs two sockets, and relays
+Both of you tap for more time or the call ends itself. Both tap Keep and you swap
+handles. Same idea as Monkey and Omegle. Written from scratch.
+
+- `worker.js`: a Cloudflare Worker. Serves `web/` and hands `/ws` to one
+  Durable Object. That object keeps the queue, pairs two sockets, and relays
   WebRTC signaling. It never sees audio or video.
-- `web/chat.js` — camera, socket, and one `RTCPeerConnection` per stranger.
-- `web/index.html` — landing page. `web/app.html` — the call itself, the clock,
+- `web/chat.js`: camera, socket, one `RTCPeerConnection` per stranger.
+- `web/index.html`: the landing page. `web/app.html`: the call, the clock,
   and the 18+ gate.
 
-Video and audio are peer-to-peer. Nothing is recorded and nothing is stored.
+Video and audio go straight between the two browsers. Nothing is recorded. Nothing is stored.
 
 ## Run
 
@@ -23,20 +24,19 @@ Video and audio are peer-to-peer. Nothing is recorded and nothing is stored.
 
 ## TURN
 
-`/ice` hands the browser its ICE servers. With no TURN key configured it returns
-STUN only, which is enough for most pairs but leaves symmetric NATs unable to
-connect. To turn the relay on, create a TURN key in the Cloudflare dashboard
-(Realtime > TURN) and give the Worker its two values:
+`/ice` hands the browser its ICE servers. With no TURN key it returns STUN only.
+That connects most pairs. Symmetric NATs it does not. To turn the relay on, make
+a TURN key in the Cloudflare dashboard (Realtime > TURN) and give the Worker both values:
 
     npx wrangler secret put TURN_KEY_ID
     npx wrangler secret put TURN_KEY_API_TOKEN
 
-The Worker then mints a credential per visit with a one hour TTL; nothing
-long-lived is ever sent to the page. If minting fails the call still runs on
-STUN rather than erroring.
+The Worker then mints a credential per visit that lives one hour. Nothing
+long-lived reaches the page. If minting fails, the call runs on STUN instead of
+failing.
 
 ## Known limits
 
-Reports are logged to the Worker console and cut the call; there is no abuse
-queue, no ban list, and no moderation of any kind. Everyone shares one lobby,
-so there are no interest tags or region matching.
+A report cuts the call and logs to the Worker console. That's it. No abuse
+queue, no ban list, no moderation. One lobby for everyone, so no interest tags
+and no region matching.
