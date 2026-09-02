@@ -7,5 +7,5 @@
       before this is publicly linked.
 - [ ] Text chat alongside video (reuse the same socket, one more message type).
 - [ ] Accounts, so a kept handle survives the tab closing.
-- [ ] Interest/region matching — needs the lobby sharded past one DO.
+- [ ] Interest/region matching, needs the lobby sharded past one DO.
 - [ ] iOS/macOS wrappers, per the cross-platform rule.
