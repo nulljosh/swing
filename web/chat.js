@@ -16,13 +16,14 @@ async function iceServers() {
 }
 
 export class Chat {
-  constructor({ local, remote, onState, onClock, onAsked, onKept }) {
+  constructor({ local, remote, onState, onClock, onAsked, onKept, onChat }) {
     this.localEl = local;
     this.remoteEl = remote;
     this.onState = onState || (() => {});
     this.onClock = onClock || (() => {});
     this.onAsked = onAsked || (() => {});
     this.onKept = onKept || (() => {});
+    this.onChat = onChat || (() => {});
     this.handle = "";
     this.stream = null;
     this.ws = null;
@@ -93,6 +94,9 @@ export class Chat {
         break;
       case "kept":
         this.onKept(msg.handle);
+        break;
+      case "chat":
+        this.onChat(msg.text);
         break;
       case "time-up":
         this.reset("Time ran out. Looking for someone...");
@@ -167,6 +171,7 @@ export class Chat {
     this.set("searching", note);
   }
 
+  say(text) { if (this.state === "connected" && text) this.send({ type: "chat", text }); }
   extend() { this.send({ type: "extend" }); }
   keep() { this.send({ type: "keep" }); }
 

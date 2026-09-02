@@ -89,6 +89,13 @@ export class Lobby {
         if (peer) send(peer, { type: "signal", data: msg.data });
         break;
       }
+      case "chat": {
+        // Text rides the same socket as signalling; the server never stores it.
+        const peer = this.peerOf(ws);
+        const text = clean(msg.text, 280);
+        if (peer && text) send(peer, { type: "chat", text });
+        break;
+      }
       case "extend":
         this.vote(ws, "extend");
         break;

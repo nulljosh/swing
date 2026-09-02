@@ -29,6 +29,13 @@ assert.deepEqual(last(b), { type: "matched", initiator: false, ms: 15000 });
 msg(lobby, a, { type: "signal", data: { sdp: "x" } });
 assert.deepEqual(last(b), { type: "signal", data: { sdp: "x" } });
 
+// Chat text reaches the partner, trimmed and capped, and empty text is dropped.
+msg(lobby, a, { type: "chat", text: "  hi there " });
+assert.deepEqual(last(b), { type: "chat", text: "hi there" });
+msg(lobby, a, { type: "chat", text: "   " });
+assert.deepEqual(last(b), { type: "chat", text: "hi there" }, "blank chat is not relayed");
+assert.ok(msg(lobby, a, { type: "chat", text: "x".repeat(400) }) === undefined && last(b).text.length <= 280);
+
 // One-sided votes only nudge the other side; they never take effect.
 msg(lobby, a, { type: "extend" });
 assert.deepEqual(last(b), { type: "asked", what: "extend" });
