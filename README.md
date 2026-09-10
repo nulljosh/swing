@@ -1,6 +1,6 @@
 # Swing
 
-**Live:** https://swing.heyitsmejosh.com
+**Live:** https://swing.heyitsmejosh.com · **GitHub:** https://github.com/nulljosh/swing
 
 Fifteen seconds of video with a stranger.
 
