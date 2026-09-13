@@ -43,9 +43,19 @@ export class Chat {
     this.ice = FALLBACK_ICE;
     this.set("idle", "Requesting camera...");
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Camera access needs HTTPS and a supported browser.");
+      }
       this.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    } catch {
-      this.set("idle", "Camera or microphone blocked");
+    } catch (error) {
+      const note = error.name === "NotAllowedError"
+        ? "Allow camera and microphone access in your browser, then tap Start again."
+        : error.name === "NotFoundError"
+          ? "No camera or microphone was found. Connect both, then tap Start again."
+          : error.name === "NotReadableError"
+            ? "Your camera or microphone is in use by another app. Close it, then tap Start again."
+            : error.message || "Camera could not start. Check browser permissions and try again.";
+      this.set("idle", note);
       return;
     }
     this.localEl.srcObject = this.stream;
@@ -60,7 +70,7 @@ export class Chat {
     this.ws.onopen = () => this.find();
     this.ws.onmessage = (e) => this.onServer(JSON.parse(e.data));
     this.ws.onclose = () => {
-      if (this.state !== "idle") this.stop("Disconnected");
+      if (this.state !== "idle") this.stop("Connection lost. Check your network, then tap Start again.");
     };
     this.set("searching", "Looking for someone...");
   }
@@ -125,6 +135,7 @@ export class Chat {
     this.closePeer();
     const pc = new RTCPeerConnection({ iceServers: this.ice });
     this.pc = pc;
+    this.pendingCandidates = [];
     for (const track of this.stream.getTracks()) pc.addTrack(track, this.stream);
     pc.ontrack = (e) => {
       this.remoteEl.srcObject = e.streams[0];
@@ -145,17 +156,23 @@ export class Chat {
     if (!pc) return;
     if (data.sdp) {
       await pc.setRemoteDescription(data.sdp);
+      if (pc !== this.pc) return;
+      for (const candidate of this.pendingCandidates.splice(0)) {
+        await pc.addIceCandidate(candidate);
+      }
       if (data.sdp.type === "offer") {
         await pc.setLocalDescription(await pc.createAnswer());
         this.send({ type: "signal", data: { sdp: pc.localDescription } });
       }
     } else if (data.candidate) {
-      // Candidates can land before the remote description on a slow link.
-      try { await pc.addIceCandidate(data.candidate); } catch {}
+      // The first candidate can arrive before the offer or answer.
+      if (pc.remoteDescription) await pc.addIceCandidate(data.candidate);
+      else this.pendingCandidates.push(data.candidate);
     }
   }
 
   closePeer() {
+    this.pendingCandidates = [];
     if (this.pc) {
       this.pc.close();
       this.pc = null;

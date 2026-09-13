@@ -138,7 +138,10 @@ const chat = new Chat({
     $("handle").disabled = state !== "idle";
     for (const id of ["next", "stop"]) $(id).disabled = state === "idle";
     for (const id of ["more", "keep", "report"]) $(id).disabled = !live;
-    if (state !== "connected") banner("");
+    if (state === "idle" && note) {
+      $("banner").textContent = note;
+      $("banner").hidden = false;
+    } else if (state !== "connected") banner("");
     $("say").hidden = !live;
     if (!live) $("log").replaceChildren();
   },

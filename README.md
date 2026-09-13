@@ -1,3 +1,5 @@
+<img src="icon.svg" alt="Swing icon" width="80" height="80">
+
 # Swing
 
 ![version](https://img.shields.io/badge/version-v1.0.0-blue) ![license](https://img.shields.io/badge/license-MIT-green) [![GitHub](https://img.shields.io/badge/GitHub-nulljosh%2Fswing-black?logo=github)](https://github.com/nulljosh/swing)
@@ -16,7 +18,15 @@ handles. Same idea as Monkey and Omegle. Written from scratch.
 - `web/index.html`: the landing page. `web/app.html`: the call, the clock,
   and the 18+ gate.
 
-Video and audio go straight between the two browsers. Nothing is recorded. Nothing is stored.
+Video and audio use a direct connection when possible, or a TURN relay when needed. Swing does not record calls. Your handle and age confirmation are saved in your browser.
+
+## Screenshots
+
+<img src="screenshots/landing.png" alt="Swing landing page" width="600">
+
+<img src="screenshots/age-gate.png" alt="Swing age confirmation on a phone" width="260">
+
+These show the landing page and age gate. A live call needs two people and camera access.
 
 ## Run
 
@@ -42,3 +52,7 @@ failing.
 A report cuts the call and logs to the Worker console. That's it. No abuse
 queue, no ban list, no moderation. One lobby for everyone, so no interest tags
 and no region matching.
+
+## Architecture
+
+<img src="architecture.svg" width="600">

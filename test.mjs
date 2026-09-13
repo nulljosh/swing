@@ -2,6 +2,7 @@
 // that the clock ends a call nobody extended, and that handles are swapped
 // only when both sides ask.
 import assert from "node:assert";
+import { readFile } from "node:fs/promises";
 import { Lobby } from "./worker.js";
 
 const fake = (name) => ({ name, readyState: 1, sent: [], send(s) { this.sent.push(JSON.parse(s)); } });
@@ -63,4 +64,39 @@ lobby.drop(a);
 assert.deepEqual(last(c), { type: "peer-left", reason: "left" });
 msg(lobby, c, "{not json");
 
+// A browser may deliver an ICE candidate before its offer. Keep it until the
+// remote description is installed so that the connection can still form.
+const source = await readFile(new URL("./web/chat.js", import.meta.url), "utf8");
+const { Chat } = await import(`data:text/javascript,${encodeURIComponent(source)}`);
+const added = [];
+globalThis.RTCPeerConnection = class {
+  addTrack() {}
+  close() {}
+  async setRemoteDescription(description) { this.remoteDescription = description; }
+  async addIceCandidate(candidate) { added.push(candidate); }
+  async createAnswer() { return { type: "answer" }; }
+  async setLocalDescription(description) { this.localDescription = description; }
+};
+const chat = new Chat({ local: {}, remote: {} });
+chat.stream = { getTracks: () => [] };
+chat.ice = [];
+await chat.openPeer(false);
+await chat.onSignal({ candidate: { candidate: "early" } });
+assert.equal(added.length, 0);
+await chat.onSignal({ sdp: { type: "offer", sdp: "test" } });
+assert.deepEqual(added, [{ candidate: "early" }]);
+
+let startNote = "";
+const blocked = new Chat({ local: {}, remote: {}, onState: (_, note) => { startNote = note; } });
+Object.defineProperty(globalThis, "navigator", {
+  configurable: true,
+  value: { mediaDevices: { getUserMedia: async () => {
+    const error = new Error("denied");
+    error.name = "NotAllowedError";
+    throw error;
+  } } },
+});
+await blocked.start("");
+assert.equal(blocked.state, "idle");
+assert.match(startNote, /Allow camera and microphone access/);
 console.log("ok");
