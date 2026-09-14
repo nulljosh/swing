@@ -1,12 +1,14 @@
 # swing roadmap
 
-- [ ] Test a real call between an iPhone and a second device, including camera
-      permission, audio, next, extend, and disconnect behavior.
-- [ ] TURN: code is done and live at `/ice`; needs a TURN key created in the
-      Cloudflare dashboard, then `wrangler secret put TURN_KEY_ID` and
-      `TURN_KEY_API_TOKEN`. Until then it serves STUN only.
-- [ ] Real abuse handling: reports go to console.log; needs a queue + ban list
-      before this is publicly linked.
+- [x] Solo automated call QA: two Chrome contexts with fake camera and mic
+      connected, carried audio/video, chat, extend, keep, next, and disconnect.
+      A real iPhone-to-device call remains untested.
+- [ ] TURN: `/ice` still serves STUN only. Creating the key requires a Cloudflare
+      API token with Calls Write, then `TURN_KEY_ID` and `TURN_KEY_API_TOKEN`
+      Worker secrets. Current Wrangler OAuth and DNS token lack that permission.
+- [x] Reports persist in the Durable Object; three distinct reports within a
+      day trigger a temporary ban. The protected moderation endpoint lists the
+      queue and bans; its token is stored in macOS Keychain.
 - [ ] Accounts, so a kept handle survives the tab closing.
 - [ ] Interest/region matching, needs the lobby sharded past one DO.
 - [ ] iOS/macOS wrappers, per the cross-platform rule.

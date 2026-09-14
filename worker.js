@@ -8,12 +8,29 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/ws") {
+      if (!env.ABUSE_SALT) return new Response("moderation unavailable", { status: 503 });
+      const ip = request.headers.get("CF-Connecting-IP") || "local";
+      const key = await fingerprint(ip, env.ABUSE_SALT);
+      const headers = new Headers(request.headers);
+      headers.set("X-Swing-Client", key);
+      return env.LOBBY.get(env.LOBBY.idFromName("global")).fetch(new Request(request, { headers }));
+    }
+    if (url.pathname === "/moderation") {
+      if (!env.MODERATOR_TOKEN || request.headers.get("Authorization") !== `Bearer ${env.MODERATOR_TOKEN}`)
+        return new Response("unauthorized", { status: 401 });
       return env.LOBBY.get(env.LOBBY.idFromName("global")).fetch(request);
     }
     if (url.pathname === "/ice") return ice(env);
     return env.ASSETS.fetch(request);
   },
 };
+
+async function fingerprint(ip, salt) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(salt),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const bytes = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(ip));
+  return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 // STUN tells a browser its public address, which is enough for most pairs. The
 // rest — symmetric NATs, restrictive corporate networks — need TURN to relay the
@@ -55,15 +72,27 @@ export class Lobby {
     this.state = state;
     this.queue = [];          // sockets waiting for a partner, oldest first
     this.who = new Map();     // socket -> { handle, last, pair }
+    state.blockConcurrencyWhile(async () => {
+      state.storage.sql.exec(`CREATE TABLE IF NOT EXISTS reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL,
+        reporter TEXT NOT NULL, subject TEXT NOT NULL, reason TEXT NOT NULL)`);
+      state.storage.sql.exec(`CREATE TABLE IF NOT EXISTS bans (
+        subject TEXT PRIMARY KEY, until_at INTEGER NOT NULL)`);
+    });
   }
 
   async fetch(request) {
+    if (new URL(request.url).pathname === "/moderation") return this.moderation(request);
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("expected websocket", { status: 426 });
     }
+    const key = request.headers.get("X-Swing-Client");
+    if (!key || !/^[a-f0-9]{64}$/.test(key)) return new Response("forbidden", { status: 403 });
+    const ban = this.state.storage.sql.exec("SELECT until_at FROM bans WHERE subject = ?", key).toArray()[0];
+    if (ban && ban.until_at > Date.now()) return new Response("banned", { status: 403 });
     const [client, server] = Object.values(new WebSocketPair());
     server.accept();
-    this.who.set(server, { handle: "", last: null, pair: null });
+    this.who.set(server, { handle: "", last: null, pair: null, key });
     server.addEventListener("message", (e) => this.onMessage(server, e.data));
     server.addEventListener("close", () => this.drop(server));
     server.addEventListener("error", () => this.drop(server));
@@ -103,10 +132,7 @@ export class Lobby {
         this.vote(ws, "keep");
         break;
       case "report":
-        // No media passes through us, so a report can only cut the pair and
-        // leave a trace. ponytail: console.log is the whole moderation story —
-        // wire to a real abuse queue before this is linked anywhere public.
-        console.log("report", JSON.stringify(clean(msg.reason, 200)));
+        this.report(ws, clean(msg.reason, 200) || "unspecified");
         this.end(ws, "reported");
         break;
       case "next":
@@ -114,6 +140,47 @@ export class Lobby {
         this.find(ws);
         break;
     }
+  }
+
+  report(ws, reason) {
+    const peer = this.peerOf(ws);
+    if (!peer) return;
+    const reporter = this.who.get(ws).key;
+    const subject = this.who.get(peer).key;
+    if (reporter === subject) return;
+    const now = Date.now();
+    // One report per reporter/subject per day. Three distinct reporters trigger
+    // a temporary ban; the queue remains available for human review.
+    this.state.storage.sql.exec("DELETE FROM reports WHERE at < ?", now - 7 * 86400000);
+    const prior = this.state.storage.sql.exec(
+      "SELECT id FROM reports WHERE reporter = ? AND subject = ? AND at > ?",
+      reporter, subject, now - 86400000).toArray();
+    if (prior.length) return;
+    this.state.storage.sql.exec(
+      "INSERT INTO reports (at, reporter, subject, reason) VALUES (?, ?, ?, ?)",
+      now, reporter, subject, reason);
+    const count = this.state.storage.sql.exec(
+      "SELECT COUNT(DISTINCT reporter) AS n FROM reports WHERE subject = ? AND at > ?",
+      subject, now - 86400000).one().n;
+    if (count >= 3) {
+      this.state.storage.sql.exec(
+        "INSERT INTO bans (subject, until_at) VALUES (?, ?) ON CONFLICT(subject) DO UPDATE SET until_at = excluded.until_at",
+        subject, now + 86400000);
+      for (const [socket, meta] of this.who) if (meta.key === subject) {
+        this.drop(socket);
+        socket.close(1008, "banned");
+      }
+    }
+  }
+
+  moderation(request) {
+    if (request.method === "GET") {
+      return Response.json({
+        reports: this.state.storage.sql.exec("SELECT id, at, subject, reason FROM reports ORDER BY id DESC LIMIT 100").toArray(),
+        bans: this.state.storage.sql.exec("SELECT subject, until_at FROM bans WHERE until_at > ?", Date.now()).toArray(),
+      }, { headers: { "Cache-Control": "no-store" } });
+    }
+    return new Response("method not allowed", { status: 405 });
   }
 
   peerOf(ws) {
