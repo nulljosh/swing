@@ -20,6 +20,8 @@ handles. Same idea as Monkey and Omegle. Written from scratch.
 
 Video and audio use a direct connection when possible, or a TURN relay when needed. Swing does not record calls. Your handle and age confirmation are saved in your browser.
 
+<img src="progress.svg" width="460">
+
 ## Screenshots
 
 <img src="screenshots/landing.png" alt="Swing landing page" width="600">
