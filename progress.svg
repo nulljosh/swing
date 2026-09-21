@@ -8,4 +8,4 @@
 <line x1="44" y1="26" x2="44" y2="166"/><line x1="44" y1="166" x2="464" y2="166"/>
 <polyline points="44,159 61,138 79,115 96,89 114,66 131,66 149,65 166,65 184,64 201,59 219,59 236,59 254,56 271,55 289,51 306,50 324,49 341,49 359,49 376,44 394,44 411,42 429,35 446,35 464,26" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
 <text x="44" y="182" font-size="10">Aug 30</text><text x="464" y="182" font-size="10" text-anchor="end">Sep 13</text>
-<text x="44" y="196" font-size="10" font-weight="600">1,106 lines &#183; 33% documented &#183; 24 commits since Aug 30 2026</text></svg>
+<text x="44" y="196" font-size="10" font-weight="600">1,106 lines &#183; 100% documented &#183; 25 commits since Aug 30 2026</text></svg>

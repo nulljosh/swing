@@ -8,6 +8,9 @@ On load, user enters a 4-digit room code (or random). Visits the same Durable Ob
 
 | File | What it owns |
 |---|---|
-| `index.html` | Landing page + app. Video elements, room code input, toggle mute/video, hang up button. Webrtc peer connection code. |
+| `web/index.html` | Landing page + app. Video elements, room code input, toggle mute/video, hang up button. Webrtc peer connection code. |
+| `web/app.html` | Alternative entry point (app-only, no landing). |
+| `web/chat.js` | Shared chat/messaging logic if applicable. |
 | `worker.js` | Durable Object: lobby state, matching two visitors, serving STUN/TURN config. |
+| `test.mjs` + `tests/solo-call.mjs` | Unit and integration tests for WebRTC call flow. |
 | `wrangler.toml` | Cloudflare deployment, DO binding. |
