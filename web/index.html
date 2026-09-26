@@ -12,11 +12,11 @@
 <link rel="icon" href="icon.svg">
 <style>
 @import url("https://heyitsmejosh.com/tokens.css");
+:root{--accent-soft:color-mix(in srgb,var(--accent) 9%,var(--bg));}
 
 :root {
   --accent: #ff851b;
   --link: #a85812;
-  --accent-soft: #fff2e6;
   --on-accent: #ffffff;
   --font-body: -apple-system, system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
@@ -24,12 +24,10 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --link: #ff851b;
-    --accent-soft: #2a1a0d;
   }
 }
 :root[data-theme="dark"] {
   --link: #ff851b;
-  --accent-soft: #2a1a0d;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
